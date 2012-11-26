@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	//The SHA1 hash BIO is chained to the input BIO, though it could just
 	//  as easily be chained to the output BIO instead.
 
-	char infilename[] = "infile.txt";
+	char infilename[] = "simon.txt";
 	char outfilename[] = "outfile.txt";
 
 	char* buffer[1024];
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	BIO_set_md(hash, EVP_sha1());
 
 	//Chain on the input
-	BIO_push(hash, binfile);
+	BIO_push(hash, binfile); //pushes hash onto input file for encryption
 
 	//Chain on the output
 	//BIO_push(hash, boutfile);
@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 	while((actualRead = BIO_read(hash, buffer, 1024)) >= 1)
 	{
 		//Could send this to multiple chains from here
+		//we write what's in buffer to the boutfile
 		actualWritten = BIO_write(boutfile, buffer, actualRead);
 	}
 
@@ -62,7 +63,7 @@ int main(int argc, char *argv[])
 //  in the book "Network Security with OpenSSL". The concepts should be useful
 //  for preparing the RSA hash and signature.
 //  Uncomment the function to try it out.
-/*
+
 int write_data(const char *filename, char *out, int len, unsigned char *key)
 {
     int total, written;
@@ -110,4 +111,4 @@ int write_data(const char *filename, char *out, int len, unsigned char *key)
     BIO_free_all(cipher) ;
 	return 0;
 }
-*/
+

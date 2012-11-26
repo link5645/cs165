@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	//The SHA1 hash BIO is chained to the input BIO, though it could just
 	//  as easily be chained to the output BIO instead.
 
-	char infilename[] = "infile.txt";
+	char infilename[] = "simon.txt";
 	char outfilename[] = "outfile.txt";
 
 	char* buffer[1024];
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 //  in the book "Network Security with OpenSSL". The concepts should be useful
 //  for preparing the RSA hash and signature.
 //  Uncomment the function to try it out.
-/*
+
 int write_data(const char *filename, char *out, int len, unsigned char *key)
 {
     int total, written;
@@ -110,4 +110,4 @@ int write_data(const char *filename, char *out, int len, unsigned char *key)
     BIO_free_all(cipher) ;
 	return 0;
 }
-*/
+
