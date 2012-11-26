@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
 
 using namespace std;
 
