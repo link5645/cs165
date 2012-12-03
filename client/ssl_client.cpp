@@ -138,6 +138,11 @@ int main(int argc, char** argv)
 	//BIO_flush
     //BIO_puts
 	//SSL_write
+	//BIO_flush(client);
+	const char * filenamebuff = filename;
+	int filenamebufflen = 0;
+	//BIO_puts(client,filebuff);
+	filenamebufflen = SSL_write(ssl,filenamebuff,BUFFER_SIZE);
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -150,6 +155,20 @@ int main(int argc, char** argv)
     //SSL_read
 	//BIO_write
 	//BIO_free
+	char * filebuffer[BUFFER_SIZE];
+	memset(filebuffer,0,BUFFER_SIZE);
+	string ufilename = filename;
+	string outfile_name = "client/"+ufilename;
+	BIO * boutfile = BIO_new_file(outfile_name.c_str(), "w");
+	int actualRead = 0;
+	int bytesSent=0;
+	
+	while((actualRead = SSL_read(ssl, filebuffer, BUFFER_SIZE)) > 0)
+	{
+		BIO_write(boutfile, filebuffer, actualRead);
+	}
+	
+	BIO_free_all(boutfile);
 
 	printf("FILE RECEIVED.\n");
 

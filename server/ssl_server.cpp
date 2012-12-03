@@ -155,10 +155,14 @@ int main(int argc, char** argv)
 	printf("6. Receiving file request from client...");
 
     //SSL_read
-    char file[BUFFER_SIZE];
-    memset(file,0,sizeof(file));
+    string filename = "";
+    int filenamebufflen = 0;
+    char filenamebuff[BUFFER_SIZE];
+    memset(filenamebuff,0,BUFFER_SIZE);
+    bufflen = SSL_read(ssl,filenamebuff,BUFFER_SIZE);
+    filename = filenamebuff;
     printf("RECEIVED.\n");
-    printf("    (File requested: \"%s\"\n", file);
+    printf("    (File requested: \"%s\")\n", filename.c_str());
 
     //-------------------------------------------------------------------------
 	// 7. Send the requested file back to the client (if it exists)
@@ -167,11 +171,19 @@ int main(int argc, char** argv)
 	PAUSE(2);
 	//BIO_flush
 	//BIO_new_file
-	//BIO_puts(server, "fnf");
-    //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
-	//SSL_write(ssl, buffer, bytesRead);
-
-    int bytesSent=0;
+	char * filebuffer[BUFFER_SIZE];
+	memset(filebuffer,0,BUFFER_SIZE);
+	string sfilename = "server/"+filename;
+	BIO * binfile = BIO_new_file(sfilename.c_str(), "r");
+	int actualRead = 0;
+	int bytesSent=0;
+	
+	//BIO_puts(server, filebuffer);
+	
+	while((actualRead = BIO_read(binfile, filebuffer, BUFFER_SIZE)) > 0)
+	{
+		bytesSent += SSL_write(ssl, filebuffer, actualRead);
+	}
     
     printf("SENT.\n");
     printf("    (Bytes sent: %d)\n", bytesSent);
