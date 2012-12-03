@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string randomNumber="31337";
+    string randomNumber="22222";//"31337";
 	//SSL_write
 	const char * cbuff = randomNumber.c_str();
 	int cbufflen = 0;
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char* buff="FIXME";
+    char * buff = "FIXME";
     int len=5;
 	//SSL_read;
 
@@ -137,12 +137,12 @@ int main(int argc, char** argv)
 	PAUSE(2);
 	//BIO_flush
     //BIO_puts
-	//SSL_write
 	//BIO_flush(client);
 	const char * filenamebuff = filename;
 	int filenamebufflen = 0;
 	//BIO_puts(client,filebuff);
 	filenamebufflen = SSL_write(ssl,filenamebuff,BUFFER_SIZE);
+	BIO_flush(client);
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -151,11 +151,7 @@ int main(int argc, char** argv)
 	// 5. Receives and displays the contents of the file requested
 	printf("5.  Receiving response from server...");
 
-    //BIO_new_file
-    //SSL_read
-	//BIO_write
-	//BIO_free
-	char * filebuffer[BUFFER_SIZE];
+	char filebuffer[BUFFER_SIZE];
 	memset(filebuffer,0,BUFFER_SIZE);
 	string ufilename = filename;
 	string outfile_name = "client/"+ufilename;
@@ -167,8 +163,6 @@ int main(int argc, char** argv)
 	{
 		BIO_write(boutfile, filebuffer, actualRead);
 	}
-	
-	BIO_free_all(boutfile);
 
 	printf("FILE RECEIVED.\n");
 
@@ -177,6 +171,7 @@ int main(int argc, char** argv)
 	printf("6.  Closing the connection...");
 
 	//SSL_shutdown
+	SSL_shutdown(ssl);
 	
 	printf("DONE.\n");
 	
@@ -186,6 +181,7 @@ int main(int argc, char** argv)
 	// Freedom!
 	SSL_CTX_free(ctx);
 	SSL_free(ssl);
+	BIO_free_all(boutfile);
 	return EXIT_SUCCESS;
 	
 }

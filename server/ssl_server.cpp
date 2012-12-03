@@ -113,6 +113,26 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
+	char shabuff[BUFFER_SIZE]; //hash is not being generated correctly
+	memset(shabuff,0,sizeof(shabuff));
+	for(int i = 0; i < challenge.size(); ++i)
+	{
+		shabuff[i] = challenge[i];
+	}
+
+	BIO * ch = BIO_new(BIO_s_mem()); //challenge
+	BIO * hash = BIO_new(BIO_f_md());
+	BIO_set_md(hash, EVP_sha1());
+	
+	//Chain on challenge
+	BIO_push(hash, ch); //pushes hash onto challenge number
+	BIO_write(ch,shabuff,BUFFER_SIZE);
+
+	//Get digest
+	char * mdbuf = new char(EVP_MAX_MD_SIZE);
+	memset(mdbuf,0,sizeof(mdbuf));
+	int mdlen = BIO_gets(hash, mdbuf, EVP_MAX_MD_SIZE);
+
 	//BIO_new(BIO_s_mem());
 	//BIO_write
 	//BIO_new(BIO_f_md());
@@ -120,8 +140,8 @@ int main(int argc, char** argv)
 	//BIO_push;
 	//BIO_gets;
 
-    int mdlen=0;
-	string hash_string = "";
+	//int mdlen = 0;
+	string hash_string = buff2hex((const unsigned char *)mdbuf,mdlen);
 
 	printf("SUCCESS.\n");
 	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), mdlen);
@@ -163,6 +183,7 @@ int main(int argc, char** argv)
     filename = filenamebuff;
     printf("RECEIVED.\n");
     printf("    (File requested: \"%s\")\n", filename.c_str());
+    
 
     //-------------------------------------------------------------------------
 	// 7. Send the requested file back to the client (if it exists)
@@ -170,29 +191,33 @@ int main(int argc, char** argv)
 
 	PAUSE(2);
 	//BIO_flush
-	//BIO_new_file
-	char * filebuffer[BUFFER_SIZE];
+	char filebuffer[BUFFER_SIZE];
 	memset(filebuffer,0,BUFFER_SIZE);
 	string sfilename = "server/"+filename;
 	BIO * binfile = BIO_new_file(sfilename.c_str(), "r");
+	
+	BIO_free_all(ch); //was causing seg fault
+	
 	int actualRead = 0;
-	int bytesSent=0;
+	int bytesSent = 0;
 	
 	//BIO_puts(server, filebuffer);
 	
-	while((actualRead = BIO_read(binfile, filebuffer, BUFFER_SIZE)) > 0)
+	while((actualRead = BIO_read(binfile, filebuffer, BUFFER_SIZE)) > 0)//seg fault problem
 	{
 		bytesSent += SSL_write(ssl, filebuffer, actualRead);
 	}
     
     printf("SENT.\n");
     printf("    (Bytes sent: %d)\n", bytesSent);
+    
 
     //-------------------------------------------------------------------------
 	// 8. Close the connection
 	printf("8. Closing connection...");
 
 	//SSL_shutdown
+	SSL_shutdown(ssl);
     //BIO_reset
     printf("DONE.\n");
 
@@ -200,7 +225,8 @@ int main(int argc, char** argv)
 	
     //-------------------------------------------------------------------------
 	// Freedom!
-    
-	BIO_free_all(server);
+	BIO_free_all(server); 
+	BIO_free_all(hash);
+	//BIO_free_all(ch); //causing seg fault
 	return EXIT_SUCCESS;
 }
