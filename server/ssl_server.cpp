@@ -113,32 +113,25 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
-	char shabuff[BUFFER_SIZE]; //hash is not being generated correctly
-	memset(shabuff,0,sizeof(shabuff));
-	for(int i = 0; i < challenge.size(); ++i)
-	{
-		shabuff[i] = challenge[i];
-	}
+	char* buffer[1024];
 
-	BIO * ch = BIO_new(BIO_s_mem()); //challenge
-	BIO * hash = BIO_new(BIO_f_md());
+	BIO *ch, *hash;
+	ch = BIO_new(BIO_s_mem());
+	BIO_puts(ch,challenge.c_str());
+	hash = BIO_new(BIO_f_md());
 	BIO_set_md(hash, EVP_sha1());
-	
-	//Chain on challenge
-	BIO_push(hash, ch); //pushes hash onto challenge number
-	BIO_write(ch,shabuff,BUFFER_SIZE);
+
+	//Chain on the input
+	BIO_push(hash, ch); //pushes hash onto input file for encryption
+
+	int aRead;
+
+	while((aRead = BIO_read(hash, buffer, BUFFER_SIZE)) >= 1)
+	{}
 
 	//Get digest
-	char * mdbuf = new char(EVP_MAX_MD_SIZE);
-	memset(mdbuf,0,sizeof(mdbuf));
+	char mdbuf[EVP_MAX_MD_SIZE];
 	int mdlen = BIO_gets(hash, mdbuf, EVP_MAX_MD_SIZE);
-
-	//BIO_new(BIO_s_mem());
-	//BIO_write
-	//BIO_new(BIO_f_md());
-	//BIO_set_md;
-	//BIO_push;
-	//BIO_gets;
 
 	//int mdlen = 0;
 	string hash_string = buff2hex((const unsigned char *)mdbuf,mdlen);
@@ -196,7 +189,7 @@ int main(int argc, char** argv)
 	string sfilename = "server/"+filename;
 	BIO * binfile = BIO_new_file(sfilename.c_str(), "r");
 	
-	BIO_free_all(ch); //was causing seg fault
+	//BIO_free_all(ch); //was causing seg fault and gives "Illegal instruction" error
 	
 	int actualRead = 0;
 	int bytesSent = 0;
