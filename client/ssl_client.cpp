@@ -92,14 +92,14 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string randomNumber="31337"; //***This number needs to change***/
+    string challenge = "31337"; //***This number needs to change***/
 	//SSL_write
-	const char * cbuff = randomNumber.c_str();
+	const char * cbuff = challenge.c_str();
 	int cbufflen = 0;
 	cbufflen = SSL_write(ssl,cbuff,BUFFER_SIZE);
     
     printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
+	printf("    (Challenge sent: \"%s\")\n", challenge.c_str());
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
@@ -115,7 +115,30 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
+	
+	//Hash un-encrypted challenge
+	char chashbuff[BUFFER_SIZE];
 
+	BIO *ch, *hash;
+	ch = BIO_new(BIO_s_mem());
+	BIO_puts(ch,challenge.c_str());
+	hash = BIO_new(BIO_f_md());
+	BIO_set_md(hash, EVP_sha1());
+
+	//Chain on the input
+	BIO_push(hash, ch); //pushes hash onto challenge
+
+	int aRead;
+
+	while((aRead = BIO_read(hash, chashbuff, BUFFER_SIZE)) >= 1)
+	{}
+
+	//Get digest
+	char hashbuff[EVP_MAX_MD_SIZE];
+	int hashlen = BIO_gets(hash, hashbuff, EVP_MAX_MD_SIZE);
+
+	string generated_key = buff2hex((const unsigned char *)hashbuff,hashlen);
+	
 	//Read in RSA public key
 	BIO * rsapubfile = BIO_new_file("rsapublickey.pem","r");
 	RSA * pubkey = PEM_read_bio_RSA_PUBKEY(rsapubfile,NULL,NULL,NULL);
@@ -130,8 +153,7 @@ int main(int argc, char** argv)
 	//RSA_public_decrypt
 	//BIO_free
 	
-	string generated_key=randomNumber;
-	string decrypted_key=buff2hex((const unsigned char *)recovered_hash,hashsize);
+	string decrypted_key = buff2hex((const unsigned char *)recovered_hash,hashsize);
     
 	printf("AUTHENTICATED\n");
 	printf("    (Generated key: %s)\n", generated_key.c_str());
