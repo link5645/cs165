@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
-	char* buffer[1024];
+	char buffer[BUFFER_SIZE];
 
 	BIO *ch, *hash;
 	ch = BIO_new(BIO_s_mem());
@@ -130,41 +130,48 @@ int main(int argc, char** argv)
 	{}
 
 	//Get digest
-	char mdbuf[EVP_MAX_MD_SIZE];
-	int mdlen = BIO_gets(hash, mdbuf, EVP_MAX_MD_SIZE);
+	char hashbuff[EVP_MAX_MD_SIZE];
+	int hashlen = BIO_gets(hash, hashbuff, EVP_MAX_MD_SIZE);
 
 	//int mdlen = 0;
-	string hash_string = buff2hex((const unsigned char *)mdbuf,mdlen);
+	string hash_string = buff2hex((const unsigned char *)hashbuff,hashlen);
 
 	printf("SUCCESS.\n");
-	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), mdlen);
+	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), hashlen);
 
     //-------------------------------------------------------------------------
 	// 4. Sign the key using the RSA private key specified in the
 	//     file "rsaprivatekey.pem"
 	printf("4. Signing the key...");
 
-    //PEM_read_bio_RSAPrivateKey
-    //RSA_private_encrypt
-    BIO * rsafile = BIO_new_file("rsaprivatekey.pem", "r");
-    int flen = 0;
-  	RSA * sig = PEM_read_bio_RSAPrivateKey(rsafile,0,0,0);
-  	
-  	
-
-    int siglen=0;
-    char* signature="FIXME";
+    //Read in RSA private key
+	BIO * rsaprivfile = BIO_new_file("rsaprivatekey.pem","r");
+	RSA * privkey = PEM_read_bio_RSAPrivateKey(rsaprivfile,NULL,NULL,NULL);
+	
+	//Sign hash with private key and output to hash-code-signature.bin file
+	unsigned char signed_hash[BUFFER_SIZE];
+	memset(signed_hash,0,BUFFER_SIZE);
+	int siglen = RSA_private_encrypt(hashlen,(const unsigned char *)hashbuff,signed_hash,privkey,RSA_PKCS1_PADDING);
 
     printf("DONE.\n");
     printf("    (Signed key length: %d bytes)\n", siglen);
-    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signature, siglen).c_str(), siglen);
+    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signed_hash, siglen).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 5. Send the signature to the client for authentication
 	printf("5. Sending signature to client for authentication...");
 
-	//BIO_flush
-	//SSL_write
+	BIO * sigbio = BIO_new(BIO_s_mem());
+	BIO_puts(sigbio,(const char *)signed_hash);
+	
+	int actualRead = 0;
+	int bytesSent = 0;
+	
+	while((actualRead = BIO_read(sigbio, signed_hash, BUFFER_SIZE)) > 0)
+	{
+		bytesSent = SSL_write(ssl, signed_hash, actualRead);
+	}
+
 
     printf("DONE.\n");
     
@@ -196,8 +203,8 @@ int main(int argc, char** argv)
 	
 	//BIO_free_all(ch); //was causing seg fault and gives "Illegal instruction" error
 	
-	int actualRead = 0;
-	int bytesSent = 0;
+	actualRead = 0;
+	bytesSent = 0;
 	
 	//BIO_puts(server, filebuffer);
 	

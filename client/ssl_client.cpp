@@ -105,12 +105,12 @@ int main(int argc, char** argv)
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char * buff = "FIXME";
-    int len=5;
-	//SSL_read;
+    char sigbuffer[BUFFER_SIZE];
+	memset(sigbuffer,0,BUFFER_SIZE);
+	int siglen = SSL_read(ssl,sigbuffer,BUFFER_SIZE);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
+	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)sigbuffer, siglen).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
