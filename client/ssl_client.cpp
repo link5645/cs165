@@ -105,17 +105,24 @@ int main(int argc, char** argv)
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char sigbuffer[BUFFER_SIZE];
-	memset(sigbuffer,0,BUFFER_SIZE);
-	int siglen = SSL_read(ssl,sigbuffer,BUFFER_SIZE);
+    unsigned char signed_hash[BUFFER_SIZE];
+	memset(signed_hash,0,BUFFER_SIZE);
+	int siglen = SSL_read(ssl,signed_hash,BUFFER_SIZE);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)sigbuffer, siglen).c_str(), siglen);
+	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signed_hash, siglen).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
 
+	//Read in RSA public key
+	BIO * rsapubfile = BIO_new_file("rsapublickey.pem","r");
+	RSA * pubkey = PEM_read_bio_RSA_PUBKEY(rsapubfile,NULL,NULL,NULL);
+	
+	//Recover hash
+	unsigned char recovered_hash[BUFFER_SIZE];
+	int hashsize = RSA_public_decrypt(siglen,signed_hash,recovered_hash,pubkey,RSA_PKCS1_PADDING); 
 	//BIO_new(BIO_s_mem())
 	//BIO_write
 	//BIO_new_file
@@ -123,8 +130,8 @@ int main(int argc, char** argv)
 	//RSA_public_decrypt
 	//BIO_free
 	
-	string generated_key="";
-	string decrypted_key="";
+	string generated_key=randomNumber;
+	string decrypted_key=buff2hex((const unsigned char *)recovered_hash,hashsize);
     
 	printf("AUTHENTICATED\n");
 	printf("    (Generated key: %s)\n", generated_key.c_str());
