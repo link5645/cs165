@@ -146,6 +146,11 @@ int main(int argc, char** argv)
 
     //PEM_read_bio_RSAPrivateKey
     //RSA_private_encrypt
+    BIO * rsafile = BIO_new_file("rsaprivatekey.pem", "r");
+    int flen = 0;
+  	RSA * sig = PEM_read_bio_RSAPrivateKey(rsafile,0,0,0);
+  	
+  	
 
     int siglen=0;
     char* signature="FIXME";

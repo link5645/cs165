@@ -83,7 +83,39 @@ int main()
 		 << endl;
 	
 	//Read in RSA private key
-	BIO * privkeyfile = BIO_new_file("rsaprivatekey.pem", "r");
+	BIO * rsaprivfile = BIO_new_file("rsaprivatekey.pem","r");
+	RSA * privkey = PEM_read_bio_RSAPrivateKey(rsaprivfile,NULL,NULL,NULL);
+	
+	//Sign hash with private key and output to hash-code-signature.bin file
+	unsigned char signed_hash[BUFFER_SIZE];
+	memset(signed_hash,0,BUFFER_SIZE);
+	int sigsize = RSA_private_encrypt(hash.second,(const unsigned char *)hash.first,signed_hash,privkey,RSA_PKCS1_PADDING);
+	BIO * boutfile = BIO_new_file("hash-code-signature.bin","w");
+	BIO * bhash = BIO_new(BIO_s_mem());
+	BIO_puts(bhash,(const char *)signed_hash);
+	int actualWritten,actualRead;
+
+	while((actualRead = BIO_read(bhash, signed_hash, BUFFER_SIZE)) >= 1)
+	{
+		//Could send this to multiple chains from here
+		//we write what's in buffer to the boutfile
+		actualWritten = BIO_write(boutfile, signed_hash, actualRead);
+	}
+	
+	//Read in RSA public key
+	BIO * rsapubfile = BIO_new_file("rsapublickey.pem","r");
+	RSA * pubkey = PEM_read_bio_RSA_PUBKEY(rsapubfile,NULL,NULL,NULL);
+	
+	//Recover hash
+	unsigned char recovered_hash[BUFFER_SIZE];
+	int hashsize = RSA_public_decrypt(sigsize,signed_hash,recovered_hash,pubkey,RSA_PKCS1_PADDING); 
+	
+	//Print recovered hash
+	cout << "SHA1 Recovered Hash: "
+		 << buff2hex((const unsigned char *)recovered_hash,hashsize) 
+		 << endl;
+	
+	print_errors();
 	
 
 	return 0;

@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string randomNumber="3133"; //***This number needs to change***/
+    string randomNumber="31337"; //***This number needs to change***/
 	//SSL_write
 	const char * cbuff = randomNumber.c_str();
 	int cbufflen = 0;
