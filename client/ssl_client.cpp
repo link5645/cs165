@@ -15,6 +15,7 @@ using namespace std;
 #include <openssl/pem.h>	// For reading .pem files for RSA keys
 #include <openssl/err.h>	// ERR_get_error()
 #include <openssl/dh.h>		// Diffie-Helman algorithms & libraries
+#include <openssl/rand.h>   // Pseudo-random number generator
 
 #include "utils.h"
 
@@ -92,14 +93,44 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    string challenge = "31337"; //***This number needs to change***/
-	//SSL_write
+    /*unsigned char random_str[BUFFER_SIZE];
+    memset(random_str,0,sizeof(random_str));
+    
+    if(RAND_bytes(random_str,BUFFER_SIZE) == 0) 
+    	printf("Random value was not generated");*/
+    
+    string challenge = "31337";//(const char *)random_str;
 	const char * cbuff = challenge.c_str();
-	int cbufflen = 0;
-	cbufflen = SSL_write(ssl,cbuff,BUFFER_SIZE);
+	int cbufflen = 5;
+	
+	//Read in RSA public key
+	BIO * chrsapubfile = BIO_new_file("rsapublickey.pem","r");
+	RSA * chpubkey = PEM_read_bio_RSA_PUBKEY(chrsapubfile,NULL,NULL,NULL);
+	
+	//Sign challenge with public key
+	unsigned char signed_ch[BUFFER_SIZE];
+	memset(signed_ch,0,BUFFER_SIZE);
+	
+	//Prepare to send encrypted challenge
+	int chsiglen = RSA_public_encrypt(cbufflen,(const unsigned char *)cbuff,signed_ch,chpubkey,RSA_PKCS1_PADDING);
+	
+	BIO * chsigbio = BIO_new(BIO_s_mem());
+	BIO_puts(chsigbio,(const char *)signed_ch);
+	
+	int chactualRead = 0;
+	int chbytesSent = 0;
+	
+	//Send encrypted challenge
+	while((chactualRead = BIO_read(chsigbio, signed_ch, BUFFER_SIZE)) > 0)
+	{
+		chbytesSent = SSL_write(ssl, signed_ch, chactualRead);
+	}
+	
+	//cbufflen = SSL_write(ssl,cbuff,BUFFER_SIZE);
+	//chbytes = SSL_write(ssl,signed_ch,chsiglen);
     
     printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", challenge.c_str());
+	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)signed_ch, chsiglen).c_str()/*challenge.c_str()*/);
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
