@@ -98,7 +98,7 @@ int main(int argc, char** argv)
 	// 2. Receive a random number (the challenge) from the client
 	printf("2. Waiting for client to connect and send challenge...");
     
-    //SSL_read
+    //Read in encrypted challenge
     unsigned char signed_ch[BUFFER_SIZE];
     memset(signed_ch,0,sizeof(signed_ch));
     int chsiglen = SSL_read(ssl,signed_ch,BUFFER_SIZE);
@@ -109,22 +109,26 @@ int main(int argc, char** argv)
 	
 	//Recover challenge
 	unsigned char recovered_ch[BUFFER_SIZE];
-	int chsize = RSA_private_decrypt(chsiglen,signed_ch,recovered_ch,chprivkey,RSA_PKCS1_PADDING); 
+	memset(recovered_ch,0,sizeof(recovered_ch));
+	int chsize = RSA_private_decrypt(chsiglen,(const unsigned char *)signed_ch,recovered_ch,chprivkey,RSA_PKCS1_PADDING); 
     
-    //string challenge = (const char *)recovered_ch;
+    string challenge = (const char *)recovered_ch;
     
 	printf("DONE.\n");
-	printf("    (Challenge: \"%s\")\n", buff2hex((const unsigned char *)signed_ch, chsiglen).c_str());
+	printf("    (Encrypted Challenge: \"%s\")\n", buff2hex((const unsigned char *)signed_ch, chsiglen).c_str());
+	printf("Length: \"%d\"\n",chsiglen);
+	printf("    (Unencrypted Challenge: \"%s\")\n", buff2hex((const unsigned char *)recovered_ch, chsize).c_str());
 
     //-------------------------------------------------------------------------
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
 	char buffer[BUFFER_SIZE];
+	memset(buffer,0,sizeof(buffer));
 
 	BIO *ch, *hash;
 	ch = BIO_new(BIO_s_mem());
-	BIO_puts(ch,(const char *)recovered_ch);//challenge.c_str());
+	BIO_puts(ch,challenge.c_str());//(const char *)recovered_ch;
 	hash = BIO_new(BIO_f_md());
 	BIO_set_md(hash, EVP_sha1());
 
@@ -138,6 +142,7 @@ int main(int argc, char** argv)
 
 	//Get digest
 	char hashbuff[EVP_MAX_MD_SIZE];
+	memset(hashbuff,0,sizeof(hashbuff));
 	int hashlen = BIO_gets(hash, hashbuff, EVP_MAX_MD_SIZE);
 
 	//int mdlen = 0;
@@ -157,7 +162,7 @@ int main(int argc, char** argv)
 	
 	//Sign hash with private key
 	unsigned char signed_hash[BUFFER_SIZE];
-	memset(signed_hash,0,BUFFER_SIZE);
+	memset(signed_hash,0,sizeof(signed_hash));
 	int siglen = RSA_private_encrypt(hashlen,(const unsigned char *)hashbuff,signed_hash,privkey,RSA_PKCS1_PADDING);
 
     printf("DONE.\n");

@@ -93,15 +93,19 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
-    /*unsigned char random_str[BUFFER_SIZE];
+    //Generate random number
+    int randlen = 5;
+    unsigned char random_str[randlen];
     memset(random_str,0,sizeof(random_str));
     
-    if(RAND_bytes(random_str,BUFFER_SIZE) == 0) 
-    	printf("Random value was not generated");*/
+    if(RAND_bytes(random_str,randlen) == 0) 
+    	printf("Random value was not generated");
     
-    string challenge = "31337";//(const char *)random_str;
-	const char * cbuff = challenge.c_str();
-	int cbufflen = 5;
+    //Convert random number from bytes to hex
+    string challenge = buff2hex((const unsigned char *)random_str, randlen);
+    printf("	\n(Unencrypted Challenge: \"%s\")\n",challenge.c_str());
+    const char * cbuff = challenge.c_str();
+	int cbufflen = challenge.size();
 	
 	//Read in RSA public key
 	BIO * chrsapubfile = BIO_new_file("rsapublickey.pem","r");
@@ -125,12 +129,10 @@ int main(int argc, char** argv)
 	{
 		chbytesSent = SSL_write(ssl, signed_ch, chactualRead);
 	}
-	
-	//cbufflen = SSL_write(ssl,cbuff,BUFFER_SIZE);
-	//chbytes = SSL_write(ssl,signed_ch,chsiglen);
     
     printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)signed_ch, chsiglen).c_str()/*challenge.c_str()*/);
+	printf("    (Encrypted Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)signed_ch, chsiglen).c_str());
+	printf("Length: \"%d\"\n",chsiglen);
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
@@ -149,6 +151,7 @@ int main(int argc, char** argv)
 	
 	//Hash un-encrypted challenge
 	char chashbuff[BUFFER_SIZE];
+	memset(chashbuff,0,sizeof(chashbuff));
 
 	BIO *ch, *hash;
 	ch = BIO_new(BIO_s_mem());
@@ -166,6 +169,7 @@ int main(int argc, char** argv)
 
 	//Get digest
 	char hashbuff[EVP_MAX_MD_SIZE];
+	memset(hashbuff,0,sizeof(hashbuff));
 	int hashlen = BIO_gets(hash, hashbuff, EVP_MAX_MD_SIZE);
 
 	string generated_key = buff2hex((const unsigned char *)hashbuff,hashlen);
@@ -177,14 +181,19 @@ int main(int argc, char** argv)
 	//Recover hash
 	unsigned char recovered_hash[BUFFER_SIZE];
 	int hashsize = RSA_public_decrypt(siglen,signed_hash,recovered_hash,pubkey,RSA_PKCS1_PADDING); 
-	//BIO_new(BIO_s_mem())
-	//BIO_write
-	//BIO_new_file
-	//PEM_read_bio_RSA_PUBKEY
-	//RSA_public_decrypt
-	//BIO_free
 	
 	string decrypted_key = buff2hex((const unsigned char *)recovered_hash,hashsize);
+	
+	if(generated_key != decrypted_key)
+	{
+		printf("AUTHENTICATION FAILED\n");
+		//SSL_shutdown
+		SSL_shutdown(ssl);
+		// Freedom!
+		SSL_CTX_free(ctx);
+		SSL_free(ssl);
+		return EXIT_FAILURE;
+	}
     
 	printf("AUTHENTICATED\n");
 	printf("    (Generated key: %s)\n", generated_key.c_str());
@@ -217,7 +226,6 @@ int main(int argc, char** argv)
 	string outfile_name = "client/"+ufilename;
 	BIO * boutfile = BIO_new_file(outfile_name.c_str(), "w");
 	int actualRead = 0;
-	int bytesSent=0;
 	
 	while((actualRead = SSL_read(ssl, filebuffer, BUFFER_SIZE)) > 0)
 	{
