@@ -223,7 +223,7 @@ int main(int argc, char** argv)
 	char filebuffer[BUFFER_SIZE];
 	memset(filebuffer,0,BUFFER_SIZE);
 	string ufilename = filename;
-	string outfile_name = "client/"+ufilename;
+	string outfile_name = ufilename;
 	BIO * boutfile = BIO_new_file(outfile_name.c_str(), "w");
 	int actualRead = 0;
 	

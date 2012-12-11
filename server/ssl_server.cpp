@@ -210,7 +210,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	char filebuffer[BUFFER_SIZE];
 	memset(filebuffer,0,BUFFER_SIZE);
-	string sfilename = "server/"+filename;
+	string sfilename = filename;
 	BIO * binfile = BIO_new_file(sfilename.c_str(), "r");
 	
 	//BIO_free_all(ch); //was causing seg fault and gives "Illegal instruction" error

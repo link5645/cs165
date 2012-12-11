@@ -3,8 +3,8 @@ FLAGS	 	=
 LIBRARIES	= -l ssl -l crypto
 
 all: server/ssl_server.cpp client/ssl_client.cpp
-	$(COMPILER) $(FLAGS) -o server_app server/ssl_server.cpp $(LIBRARIES)
-	$(COMPILER) $(FLAGS) -o client_app client/ssl_client.cpp $(LIBRARIES)
+	$(COMPILER) $(FLAGS) -o server/server_app server/ssl_server.cpp $(LIBRARIES)
+	$(COMPILER) $(FLAGS) -o client/client_app client/ssl_client.cpp $(LIBRARIES)
 clean:
-	rm -rf client_app server_app client/simon.txt *.*~ *~
+	rm -rf client/client_app server/server_app client/*.*~ server/*.*~ client/simon.txt *.*~ *~
 
